@@ -8,6 +8,9 @@
     unused
 )]
 
+mod vec3;
+
+use crate::vec3::Vec3;
 use std::io;
 use std::io::Write as _;
 
@@ -28,10 +31,13 @@ fn write_image(stdout: &mut io::Stdout) -> io::Result<()> {
     )?;
     for y in 0..n_rows_y {
         for x in 0..n_columns_x {
-            let r = (x as f64) / ((n_columns_x as f64) - 1.0) * max_channel_value;
-            let g = (y as f64) / ((n_rows_y as f64) - 1.0) * max_channel_value;
-            let b = 0.2 * max_channel_value;
-            writeln!(stdout, "{:.0} {:.0} {:.0}", r, g, b)?;
+            let color = max_channel_value
+                * Vec3(
+                    (x as f64) / ((n_columns_x as f64) - 1.0),
+                    (y as f64) / ((n_rows_y as f64) - 1.0),
+                    0.2,
+                );
+            writeln!(stdout, "{}", color.as_ppm_pixel())?;
         }
     }
     Ok(())
