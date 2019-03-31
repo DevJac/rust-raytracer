@@ -12,6 +12,8 @@ impl Vec3 {
         self / self.length()
     }
 
+    // Tarpaulin doesn't detect coverage of this function, but it is covered.
+    #[cfg_attr(tarpaulin, skip)]
     pub fn dot(self, rhs: Self) -> f64 {
         (self.0 * rhs.0) + (self.1 * rhs.1) + (self.2 * rhs.2)
     }
