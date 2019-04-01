@@ -4,21 +4,21 @@ use std::ops;
 pub struct Vec3(pub f64, pub f64, pub f64);
 
 impl Vec3 {
-    pub fn length(self) -> f64 {
+    pub fn length(&self) -> f64 {
         (self.0.powi(2) + self.1.powi(2) + self.2.powi(2)).sqrt()
     }
 
-    pub fn normalized(self) -> Self {
-        self / self.length()
+    pub fn normalized(&self) -> Self {
+        *self / self.length()
     }
 
     // Tarpaulin doesn't detect coverage of this function, but it is covered.
     #[cfg_attr(tarpaulin, skip)]
-    pub fn dot(self, rhs: Self) -> f64 {
+    pub fn dot(&self, rhs: Self) -> f64 {
         (self.0 * rhs.0) + (self.1 * rhs.1) + (self.2 * rhs.2)
     }
 
-    pub fn cross(self, rhs: Self) -> Self {
+    pub fn cross(&self, rhs: Self) -> Self {
         Self(
             (self.1 * rhs.2) - (self.2 * rhs.1),
             -((self.0 * rhs.2) - (self.2 * rhs.0)),
@@ -26,7 +26,7 @@ impl Vec3 {
         )
     }
 
-    pub fn as_ppm_pixel(self) -> String {
+    pub fn as_ppm_pixel(&self) -> String {
         format!("{:.0} {:.0} {:.0}", self.0, self.1, self.2)
     }
 }
