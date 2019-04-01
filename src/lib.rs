@@ -53,8 +53,8 @@ fn scale_value_to_range(
 fn ray_color(r: Ray) -> Vec3 {
     let sky_color_0 = Vec3(1.0, 1.0, 1.0);
     let sky_color_1 = Vec3(0.5, 0.7, 1.0);
-    if let Hit::Hit(hit_point) = hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, r) {
-        let blueish_hitpoint = hit_point + Vec3(0.0, 0.0, 1.0);
+    if let Hit::Hit(hitpoint) = hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, r) {
+        let blueish_hitpoint = hitpoint + Vec3(0.0, 0.0, 1.0);
         let hpn = blueish_hitpoint.normalized();
         return Vec3(
             scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.0),
