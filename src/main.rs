@@ -119,3 +119,11 @@ fn test_scale_value_to_range() {
     assert_eq!(scale_value_to_range(-7.0, -6.0, 2.0, 4.0, -6.5), 3.0);
     assert_eq!(scale_value_to_range(-7.0, -6.0, 2.0, 4.0, -6.0), 4.0);
 }
+
+#[test]
+fn test_gen_image() {
+    let image = gen_image(10, 5);
+    assert_eq!(image.columns, 10);
+    assert_eq!(image.rows, 5);
+    assert_eq!(image.pixel_colors.len(), 50);
+}
