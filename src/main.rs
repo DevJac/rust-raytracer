@@ -8,34 +8,30 @@
     unused
 )]
 
+mod image;
 mod ray;
 mod vec3;
 
+use crate::image::Image;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
 use std::io;
-use std::io::Write as _;
 
 const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
 
 fn main() -> io::Result<()> {
     let mut stdout = io::stdout();
-    write_image(&mut stdout)
+    gen_image(400, 200).write_to(&mut stdout)
 }
 
-#[allow(clippy::cast_lossless)]
-fn write_image(stdout: &mut io::Stdout) -> io::Result<()> {
-    let n_columns_x: i32 = 200;
-    let n_rows_y: i32 = 100;
+#[allow(clippy::cast_lossless, clippy::cast_sign_loss)]
+fn gen_image(n_columns_x: i32, n_rows_y: i32) -> Image {
+    assert!(n_columns_x == 2 * n_rows_y, "We're assuming there's twice as many columns as rows currently, but this assumption can be removed in the future.");
+    let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
     let lower_left_corner = Vec3(-2.0, -1.0, -1.0);
     let horizontal = Vec3(4.0, 0.0, 0.0);
     let vertical = Vec3(0.0, 2.0, 0.0);
-    write!(
-        stdout,
-        "P3\n{} {}\n{:.0}\n",
-        n_columns_x, n_rows_y, max_channel_value
-    )?;
     for y in (0..n_rows_y).rev() {
         let v = (y as f64) / ((n_rows_y as f64) - 1.0);
         for x in 0..n_columns_x {
@@ -45,10 +41,15 @@ fn write_image(stdout: &mut io::Stdout) -> io::Result<()> {
                 direction: lower_left_corner + (u * horizontal) + (v * vertical),
             };
             let color = max_channel_value * ray_color(ray);
-            writeln!(stdout, "{}", color.as_ppm_pixel())?;
+            pixel_colors.push(color);
         }
     }
-    Ok(())
+    Image {
+        columns: n_columns_x,
+        rows: n_rows_y,
+        max_channel_value,
+        pixel_colors,
+    }
 }
 
 fn scale_value_to_range(
