@@ -66,32 +66,47 @@ fn scale_value_to_range(
 }
 
 fn ray_color(r: Ray) -> Vec3 {
-    let ball_color = Vec3(1.0, 0.0, 0.0);
     let sky_color_0 = Vec3(1.0, 1.0, 1.0);
     let sky_color_1 = Vec3(0.5, 0.7, 1.0);
-    if hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, r) {
-        return ball_color;
+    if let Hit::Hit(hit_point) = hit_sphere(Vec3(0.0, 0.0, -1.0), 0.5, r) {
+        let blueish_hitpoint = hit_point + Vec3(0.0, 0.0, 1.0);
+        let hpn = blueish_hitpoint.normalized();
+        return Vec3(
+            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.0),
+            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.1),
+            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.2),
+        );
     }
     let unit_direction = r.direction.normalized();
     let y = scale_value_to_range(-1.0, 1.0, 0.0, 1.0, unit_direction.1);
     ((1.0 - y) * sky_color_0) + (y * sky_color_1)
 }
 
-fn hit_sphere(center: Vec3, radius: f64, r: Ray) -> bool {
+enum Hit {
+    NoHit,
+    Hit(Vec3),
+}
+
+fn hit_sphere(center: Vec3, radius: f64, r: Ray) -> Hit {
     // We're trying to solve: dot((A + t*B - C), (A + t*B - C)) = R*R
     // Where A is the ray's origin, B is the ray's direction,
     // C is the center of the sphere, and R is the radius of the sphere.
     // The above formula can be rewritten as: t*t*dot(B,B) + 2*t*dot(A-C,B) + dot(A-C,A-C) - R*R = 0
     // A, B, and C are known constants. We can use the quadratic formula to solve the equation.
     // The quadratic formula solves an equation of the form: ax^2 + bx + c
-    // Specifically, we only need to calculate the discriminant: b*b - 4*a*c
+    // Importantly, we need to calculate the discriminant: b*b - 4*a*c
     // If the discriminant is greater than zero, we are intersecting the sphere's surface at 2 points (front and back).
     let oc = r.origin - center; // This is A - C
     let a = r.direction.dot(r.direction); // This is dot(B,B) of t*t*dot(B,B)
     let b = 2.0 * oc.dot(r.direction); // This is 2*dot(A-C,B) of 2*t*dot(A-C,B); we are working with the coefficients of t, since we are solving for t.
     let c = oc.dot(oc) - radius.powi(2); // This is dot(A-C,A-C) - R*R; these are constants, there is no t in this term.
     let discriminant = b.powi(2) - 4.0 * a * c;
-    discriminant > 0.0
+    if discriminant < 0.0 {
+        Hit::NoHit
+    } else {
+        let hit_t = (-b - discriminant.sqrt()) / (2.0 * a);
+        Hit::Hit(r.point_at_t(hit_t))
+    }
 }
 
 #[test]
