@@ -21,9 +21,10 @@ pub struct Camera {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss
 )]
-pub fn gen_image(camera: Camera, pixel_density: f64) -> Image {
-    let n_columns_x: f64 = pixel_density * camera.horizontal.length();
-    let n_rows_y: f64 = pixel_density * camera.vertical.length();
+pub fn gen_image(camera: Camera, horizontal_pixels: f64) -> Image {
+    let n_columns_x: f64 = horizontal_pixels.round();
+    let n_rows_y: f64 =
+        (horizontal_pixels * (camera.vertical.length() / camera.horizontal.length())).round();
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
     for y in (0..(n_rows_y as i32)).rev() {
@@ -106,7 +107,7 @@ fn test_gen_image() {
         vertical: Vec3(0.0, 2.0, 0.0),
     };
     let image = gen_image(c, 10.0);
-    assert_eq!(image.columns, 40);
-    assert_eq!(image.rows, 20);
-    assert_eq!(image.pixel_colors.len(), 800);
+    assert_eq!(image.columns, 10);
+    assert_eq!(image.rows, 5);
+    assert_eq!(image.pixel_colors.len(), 50);
 }

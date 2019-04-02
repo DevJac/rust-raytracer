@@ -20,5 +20,5 @@ fn main() -> io::Result<()> {
         horizontal: Vec3(4.0, 0.0, 0.0),
         vertical: Vec3(0.0, 2.0, 0.0),
     };
-    gen_image(c, 50.0).write_to(&mut stdout)
+    gen_image(c, 200.0).write_to(&mut stdout)
 }
