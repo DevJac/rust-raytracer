@@ -3,8 +3,7 @@ mod ray;
 mod vec3;
 
 use crate::image::Image;
-use crate::ray::Hitable as _;
-use crate::ray::{Hit, Ray, Sphere};
+use crate::ray::{Hit, Hitable, Ray, Sphere};
 use crate::vec3::Vec3;
 
 const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
@@ -52,22 +51,23 @@ fn scale_value_to_range(
 }
 
 fn ray_color(r: Ray) -> Vec3 {
-    let sphere = Sphere {
-        center: Vec3(0.0, 0.0, -1.0),
-        radius: 0.5,
-    };
+    let objects: Vec<Box<dyn Hitable>> = vec![
+        Box::new(Sphere {
+            center: Vec3(0.0, 0.0, -1.0),
+            radius: 0.5,
+        }),
+        Box::new(Sphere {
+            center: Vec3(0.0, -1000.5, -1.0),
+            radius: 1000.0,
+        }),
+    ];
     let sky_color_0 = Vec3(1.0, 1.0, 1.0);
     let sky_color_1 = Vec3(0.5, 0.7, 1.0);
-    if let Hit::Hit {
-        point: hitpoint, ..
-    } = sphere.hit(r)
-    {
-        let blueish_hitpoint = hitpoint + Vec3(0.0, 0.0, 1.0);
-        let hpn = blueish_hitpoint.normalized();
+    if let Hit::Hit { normal, .. } = objects.hit(r) {
         return Vec3(
-            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.0),
-            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.1),
-            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, hpn.2),
+            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, normal.0),
+            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, normal.1),
+            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, normal.2),
         );
     }
     let unit_direction = r.direction.normalized();

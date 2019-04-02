@@ -21,6 +21,7 @@ fn test_point_at_t() {
     assert_eq!(r.point_at_t(2.0), Vec3(2.0, 4.0, 1.0));
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Hit {
     NoHit,
     Hit { t: f64, point: Vec3, normal: Vec3 },
@@ -55,11 +56,31 @@ impl Hitable for Sphere {
         } else {
             let hit_t = (-b - discriminant.sqrt()) / (2.0 * a);
             let hit_point = r.point_at_t(hit_t);
-            Hit::Hit {
-                t: hit_t,
-                point: hit_point,
-                normal: (hit_point - self.center) / self.radius,
+            if hit_t < 0.0 {
+                Hit::NoHit
+            } else {
+                Hit::Hit {
+                    t: hit_t,
+                    point: hit_point,
+                    normal: (hit_point - self.center) / self.radius,
+                }
             }
         }
+    }
+}
+
+impl Hitable for Vec<Box<dyn Hitable>> {
+    fn hit(&self, r: Ray) -> Hit {
+        let mut nearest_hit = Hit::NoHit;
+        for hitable in self {
+            let hitable = hitable.as_ref();
+            let hit = hitable.hit(r);
+            match (nearest_hit, hit) {
+                (Hit::NoHit, Hit::Hit { .. }) => nearest_hit = hit,
+                (Hit::Hit { t, .. }, Hit::Hit { t: t_new, .. }) if t_new < t => nearest_hit = hit,
+                _ => (),
+            }
+        }
+        nearest_hit
     }
 }
