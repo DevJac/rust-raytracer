@@ -12,7 +12,7 @@ fn bench_gen_image(criterion: &mut Criterion) {
     let image_sizes: Vec<f64> = vec![100.0, 200.0, 400.0];
     criterion.bench_function_over_inputs(
         "gen_image",
-        move |b: &mut Bencher, size: &f64| b.iter(|| gen_image(c, *size)),
+        move |b: &mut Bencher, size: &f64| b.iter(|| gen_image(c, *size, 8)),
         image_sizes,
     );
 }

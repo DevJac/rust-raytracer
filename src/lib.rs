@@ -5,6 +5,7 @@ pub mod vec3;
 use crate::image::Image;
 use crate::ray::{Hit, Hitable, Ray, Sphere};
 use crate::vec3::Vec3;
+use random::Source as _;
 
 pub const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
 
@@ -21,24 +22,29 @@ pub struct Camera {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss
 )]
-pub fn gen_image(camera: Camera, horizontal_pixels: f64) -> Image {
+pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image {
     let n_columns_x: f64 = horizontal_pixels.round();
     let n_rows_y: f64 =
         (horizontal_pixels * (camera.vertical.length() / camera.horizontal.length())).round();
+    let mut source = random::default();
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
     for y in (0..(n_rows_y as i32)).rev() {
-        let v = (y as f64) / (n_rows_y - 1.0);
         for x in 0..(n_columns_x as i32) {
-            let u = (x as f64) / (n_columns_x - 1.0);
-            let ray = Ray {
-                origin: ORIGIN,
-                direction: camera.lower_left_corner
-                    + (u * camera.horizontal)
-                    + (v * camera.vertical),
-            };
-            let color = max_channel_value * ray_color(ray);
-            pixel_colors.push(color);
+            let mut average_color = Vec3(0.0, 0.0, 0.0);
+            for aa_ray_i in 1..=aa_rays {
+                let v = ((y as f64) + source.read::<f64>() - 0.5) / (n_rows_y - 1.0);
+                let u = ((x as f64) + source.read::<f64>() - 0.5) / (n_columns_x - 1.0);
+                let ray = Ray {
+                    origin: ORIGIN,
+                    direction: camera.lower_left_corner
+                        + (u * camera.horizontal)
+                        + (v * camera.vertical),
+                };
+                let aa_ray_color = ray_color(ray);
+                average_color += (aa_ray_color - average_color) / (aa_ray_i as f64);
+            }
+            pixel_colors.push(average_color * max_channel_value);
         }
     }
     Image {
@@ -106,7 +112,7 @@ fn test_gen_image() {
         horizontal: Vec3(4.0, 0.0, 0.0),
         vertical: Vec3(0.0, 2.0, 0.0),
     };
-    let image = gen_image(c, 10.0);
+    let image = gen_image(c, 10.0, 8);
     assert_eq!(image.columns, 10);
     assert_eq!(image.rows, 5);
     assert_eq!(image.pixel_colors.len(), 50);
