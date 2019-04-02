@@ -26,15 +26,15 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
     let n_columns_x: f64 = horizontal_pixels.round();
     let n_rows_y: f64 =
         (horizontal_pixels * (camera.vertical.length() / camera.horizontal.length())).round();
-    let mut source = random::default();
+    let mut random_source = random::default();
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
     for y in (0..(n_rows_y as i32)).rev() {
         for x in 0..(n_columns_x as i32) {
             let mut average_color = Vec3(0.0, 0.0, 0.0);
             for aa_ray_i in 1..=aa_rays {
-                let v = ((y as f64) + source.read::<f64>() - 0.5) / (n_rows_y - 1.0);
-                let u = ((x as f64) + source.read::<f64>() - 0.5) / (n_columns_x - 1.0);
+                let v = ((y as f64) + random_source.read::<f64>() - 0.5) / (n_rows_y - 1.0);
+                let u = ((x as f64) + random_source.read::<f64>() - 0.5) / (n_columns_x - 1.0);
                 let ray = Ray {
                     origin: ORIGIN,
                     direction: camera.lower_left_corner
@@ -82,16 +82,46 @@ fn ray_color(r: Ray) -> Vec3 {
     ];
     let sky_color_0 = Vec3(1.0, 1.0, 1.0);
     let sky_color_1 = Vec3(0.5, 0.7, 1.0);
-    if let Hit::Hit { normal, .. } = objects.hit(r) {
-        return Vec3(
-            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, normal.0),
-            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, normal.1),
-            scale_value_to_range(-1.0, 1.0, 0.0, 1.0, normal.2),
-        );
+    if let Hit::Hit {
+        point: hit_point,
+        normal: hit_normal,
+        ..
+    } = objects.hit(r)
+    {
+        return 0.5
+            * ray_color(Ray {
+                origin: hit_point,
+                direction: hit_normal + random_point_in_unit_sphere(),
+            });
     }
     let unit_direction = r.direction.normalized();
     let y = scale_value_to_range(-1.0, 1.0, 0.0, 1.0, unit_direction.1);
     ((1.0 - y) * sky_color_0) + (y * sky_color_1)
+}
+
+fn random_point_in_unit_sphere() -> Vec3 {
+    let mut random_source = random::default();
+    loop {
+        let p =
+            (2.0 * Vec3(
+                random_source.read(),
+                random_source.read(),
+                random_source.read(),
+            )) - Vec3(1.0, 1.0, 1.0);
+        if p.length() <= 1.0 {
+            return p;
+        }
+    }
+}
+
+#[test]
+fn test_random_point_in_unit_sphere() {
+    let a = random_point_in_unit_sphere();
+    let b = random_point_in_unit_sphere();
+    let d0 = (a.0 - b.0).abs();
+    let d1 = (a.1 - b.1).abs();
+    let d2 = (a.2 - b.2).abs();
+    assert!(d0 > 0.001 || d1 > 0.001 || d2 > 0.001);
 }
 
 #[test]
