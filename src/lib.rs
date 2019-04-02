@@ -1,36 +1,48 @@
 mod image;
 mod ray;
-mod vec3;
+pub mod vec3;
 
 use crate::image::Image;
 use crate::ray::{Hit, Hitable, Ray, Sphere};
 use crate::vec3::Vec3;
 
-const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
+pub const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
 
-#[allow(clippy::cast_lossless, clippy::cast_sign_loss)]
-pub fn gen_image(n_columns_x: i32, n_rows_y: i32) -> Image {
-    assert!(n_columns_x == 2 * n_rows_y, "We're assuming there's twice as many columns as rows currently, but this assumption can be removed in the future.");
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Camera {
+    pub origin: Vec3,
+    pub lower_left_corner: Vec3,
+    pub horizontal: Vec3,
+    pub vertical: Vec3,
+}
+
+#[allow(
+    clippy::cast_lossless,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss
+)]
+pub fn gen_image(camera: Camera, pixel_density: f64) -> Image {
+    let n_columns_x: f64 = pixel_density * camera.horizontal.length();
+    let n_rows_y: f64 = pixel_density * camera.vertical.length();
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
-    let lower_left_corner = Vec3(-2.0, -1.0, -1.0);
-    let horizontal = Vec3(4.0, 0.0, 0.0);
-    let vertical = Vec3(0.0, 2.0, 0.0);
-    for y in (0..n_rows_y).rev() {
-        let v = (y as f64) / ((n_rows_y as f64) - 1.0);
-        for x in 0..n_columns_x {
-            let u = (x as f64) / ((n_columns_x as f64) - 1.0);
+    for y in (0..(n_rows_y as i32)).rev() {
+        let v = (y as f64) / (n_rows_y - 1.0);
+        for x in 0..(n_columns_x as i32) {
+            let u = (x as f64) / (n_columns_x - 1.0);
             let ray = Ray {
                 origin: ORIGIN,
-                direction: lower_left_corner + (u * horizontal) + (v * vertical),
+                direction: camera.lower_left_corner
+                    + (u * camera.horizontal)
+                    + (v * camera.vertical),
             };
             let color = max_channel_value * ray_color(ray);
             pixel_colors.push(color);
         }
     }
     Image {
-        columns: n_columns_x,
-        rows: n_rows_y,
+        columns: n_columns_x as i32,
+        rows: n_rows_y as i32,
         max_channel_value,
         pixel_colors,
     }
@@ -87,8 +99,14 @@ fn test_scale_value_to_range() {
 
 #[test]
 fn test_gen_image() {
-    let image = gen_image(10, 5);
-    assert_eq!(image.columns, 10);
-    assert_eq!(image.rows, 5);
-    assert_eq!(image.pixel_colors.len(), 50);
+    let c = Camera {
+        origin: ORIGIN,
+        lower_left_corner: Vec3(-2.0, -1.0, -1.0),
+        horizontal: Vec3(4.0, 0.0, 0.0),
+        vertical: Vec3(0.0, 2.0, 0.0),
+    };
+    let image = gen_image(c, 10.0);
+    assert_eq!(image.columns, 40);
+    assert_eq!(image.rows, 20);
+    assert_eq!(image.pixel_colors.len(), 800);
 }

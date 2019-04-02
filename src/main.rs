@@ -8,10 +8,17 @@
     unused
 )]
 
-use raytrace::gen_image;
+use raytrace::vec3::Vec3;
+use raytrace::{gen_image, Camera, ORIGIN};
 use std::io;
 
 fn main() -> io::Result<()> {
     let mut stdout = io::stdout();
-    gen_image(400, 200).write_to(&mut stdout)
+    let c = Camera {
+        origin: ORIGIN,
+        lower_left_corner: Vec3(-2.0, -1.0, -1.0),
+        horizontal: Vec3(4.0, 0.0, 0.0),
+        vertical: Vec3(0.0, 2.0, 0.0),
+    };
+    gen_image(c, 50.0).write_to(&mut stdout)
 }
