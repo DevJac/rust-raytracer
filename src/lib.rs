@@ -52,7 +52,10 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
         let now = SystemTime::now();
         let ds = now.duration_since(last_print);
         if ds.is_err() || ds.unwrap() > Duration::from_secs(30) {
-            eprintln!("Rendering: {} rows remaining", y);
+            eprintln!(
+                "Rendering: {:.0}% complete",
+                (n_rows_y - (y as f64)) / n_rows_y * 100.0,
+            );
             last_print = now;
         }
         for x in 0..(n_columns_x as i32) {
