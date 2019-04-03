@@ -44,7 +44,7 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
                 let aa_ray_color = ray_color(ray);
                 average_color += (aa_ray_color - average_color) / (aa_ray_i as f64);
             }
-            pixel_colors.push(average_color * max_channel_value);
+            pixel_colors.push(gamma_correct(average_color) * max_channel_value);
         }
     }
     Image {
@@ -53,6 +53,10 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
         max_channel_value,
         pixel_colors,
     }
+}
+
+fn gamma_correct(c: Vec3) -> Vec3 {
+    Vec3(c.0.sqrt(), c.1.sqrt(), c.2.sqrt())
 }
 
 fn scale_value_to_range(
