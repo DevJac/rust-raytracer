@@ -5,17 +5,35 @@ pub mod vec3;
 use crate::image::Image;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
-use std::time::{Duration, SystemTime};
 use random::Source as _;
+use std::time::{Duration, SystemTime};
 
 pub const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
+pub const UP: Vec3 = Vec3(0.0, 1.0, 0.0);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Camera {
-    pub origin: Vec3,
-    pub lower_left_corner: Vec3,
-    pub horizontal: Vec3,
-    pub vertical: Vec3,
+    pub up: Vec3,
+    pub look_from: Vec3,
+    pub look_to: Vec3,
+    pub aspec_ratio: f64,
+    pub vertical_fov: f64,
+}
+
+impl Camera {
+    fn lower_left_corner(&self) -> Vec3 {
+        self.look_from + (self.look_to.normalized() * self.vertical_fov.to_radians().tan().powi(-1))
+            - self.horizontal()
+            - self.vertical()
+    }
+
+    fn horizontal(&self) -> Vec3 {
+        self.look_to.cross(self.up).normalized() * self.aspec_ratio
+    }
+
+    fn vertical(&self) -> Vec3 {
+        self.horizontal().cross(self.look_to).normalized()
+    }
 }
 
 #[allow(
@@ -25,8 +43,7 @@ pub struct Camera {
 )]
 pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image {
     let n_columns_x: f64 = horizontal_pixels.round();
-    let n_rows_y: f64 =
-        (horizontal_pixels * (camera.vertical.length() / camera.horizontal.length())).round();
+    let n_rows_y: f64 = (horizontal_pixels / camera.aspec_ratio).round();
     let mut random_source = random::default();
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
@@ -44,10 +61,10 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
                 let v = ((y as f64) + random_source.read::<f64>() - 0.5) / (n_rows_y - 1.0);
                 let u = ((x as f64) + random_source.read::<f64>() - 0.5) / (n_columns_x - 1.0);
                 let ray = Ray {
-                    origin: camera.origin,
-                    direction: camera.lower_left_corner
-                        + (u * camera.horizontal)
-                        + (v * camera.vertical),
+                    origin: camera.look_from,
+                    direction: camera.lower_left_corner()
+                        + (u * 2.0 * camera.horizontal())
+                        + (v * 2.0 * camera.vertical()),
                 };
                 let aa_ray_color = ray.color();
                 average_color += (aa_ray_color - average_color) / (aa_ray_i as f64);
@@ -70,10 +87,11 @@ fn gamma_correct(c: Vec3) -> Vec3 {
 #[test]
 fn test_gen_image() {
     let c = Camera {
-        origin: ORIGIN,
-        lower_left_corner: Vec3(-2.0, -1.0, -1.0),
-        horizontal: Vec3(4.0, 0.0, 0.0),
-        vertical: Vec3(0.0, 2.0, 0.0),
+        up: UP,
+        look_from: ORIGIN,
+        look_to: Vec3(0.0, 0.0, -1.0),
+        aspec_ratio: 2.0,
+        vertical_fov: 45.0,
     };
     let image = gen_image(c, 10.0, 8);
     assert_eq!(image.columns, 10);
