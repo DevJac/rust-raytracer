@@ -18,8 +18,9 @@ impl Ray {
                 center: Vec3(0.0, 0.0, -1.0),
                 radius: 0.5,
                 material: StandardMaterial {
-                    reflection: 0.9,
-                    color: Vec3(0.5, 0.1, 0.1),
+                    reflection: 0.0,
+                    color: Vec3(1.0, 1.0, 1.0),
+                    albedo: 0.5,
                 },
             }),
             Box::new(Sphere {
@@ -27,7 +28,8 @@ impl Ray {
                 radius: 1000.0,
                 material: StandardMaterial {
                     reflection: 0.0,
-                    color: Vec3(0.1, 0.5, 0.05),
+                    color: Vec3(1.0, 1.0, 1.0),
+                    albedo: 0.5,
                 },
             }),
         ];
@@ -146,6 +148,7 @@ trait Material {
 pub struct StandardMaterial {
     pub reflection: f64,
     pub color: Vec3,
+    pub albedo: f64,
 }
 
 impl Material for StandardMaterial {
@@ -162,12 +165,12 @@ impl Material for StandardMaterial {
             + (1.0 - self.reflection) * diffuse_scattered_ray_direction;
         Ray {
             origin: surface_point,
-            direction: combined_direction,
+            direction: combined_direction.normalized(),
         }
     }
 
     fn attenuate(&self, incoming_ray_color: Vec3) -> Vec3 {
-        self.color * incoming_ray_color
+        self.albedo * self.color * incoming_ray_color
     }
 }
 
