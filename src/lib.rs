@@ -30,6 +30,7 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
     for y in (0..(n_rows_y as i32)).rev() {
+        eprintln!("{}", y);
         for x in 0..(n_columns_x as i32) {
             let mut average_color = Vec3(0.0, 0.0, 0.0);
             for aa_ray_i in 1..=aa_rays {

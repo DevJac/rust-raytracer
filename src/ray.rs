@@ -18,9 +18,9 @@ impl Ray {
                 center: Vec3(0.0, 0.0, -1.0),
                 radius: 0.5,
                 material: StandardMaterial {
-                    reflection: 0.0,
-                    color: Vec3(1.0, 1.0, 1.0),
-                    albedo: 0.5,
+                    reflection: 0.98,
+                    color: Vec3(1.0, 0.2, 0.2),
+                    albedo: 0.6,
                 },
             }),
             Box::new(Sphere {
@@ -28,8 +28,26 @@ impl Ray {
                 radius: 1000.0,
                 material: StandardMaterial {
                     reflection: 0.0,
-                    color: Vec3(1.0, 1.0, 1.0),
-                    albedo: 0.5,
+                    color: Vec3(0.3, 0.6, 0.0),
+                    albedo: 0.4,
+                },
+            }),
+            Box::new(Sphere {
+                center: Vec3(0.9, -0.3, -0.9),
+                radius: 0.2,
+                material: StandardMaterial {
+                    reflection: 0.0,
+                    color: Vec3(0.2, 0.2, 1.0),
+                    albedo: 0.6,
+                },
+            }),
+            Box::new(Sphere {
+                center: Vec3(-1.0, -0.1, -0.9),
+                radius: 0.4,
+                material: StandardMaterial {
+                    reflection: 1.0,
+                    color: Vec3(1.0, 1.0, 0.6),
+                    albedo: 0.8,
                 },
             }),
         ];
