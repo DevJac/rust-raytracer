@@ -1,4 +1,5 @@
 use crate::vec3::Vec3;
+use random::Source as _;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray {
@@ -9,6 +10,45 @@ pub struct Ray {
 impl Ray {
     pub fn point_at_t(&self, t: f64) -> Vec3 {
         self.origin + (self.direction * t)
+    }
+
+    pub fn color(&self) -> Vec3 {
+        let objects: Vec<Box<dyn Hitable>> = vec![
+            Box::new(Sphere {
+                center: Vec3(0.0, 0.0, -1.0),
+                radius: 0.5,
+                material: StandardMaterial {
+                    reflection: 0.9,
+                    color: Vec3(0.5, 0.1, 0.1),
+                },
+            }),
+            Box::new(Sphere {
+                center: Vec3(0.0, -1000.5, -1.0),
+                radius: 1000.0,
+                material: StandardMaterial {
+                    reflection: 0.0,
+                    color: Vec3(0.1, 0.5, 0.05),
+                },
+            }),
+        ];
+        let sky_color_0 = Vec3(1.0, 1.0, 1.0);
+        let sky_color_1 = Vec3(0.5, 0.7, 1.0);
+        if let Hit::Hit {
+            point: hit_point,
+            normal: hit_normal,
+            material: hit_material,
+            ..
+        } = objects.hit(*self)
+        {
+            return hit_material.attenuate(
+                hit_material
+                    .scatter(self.direction, hit_point, hit_normal)
+                    .color(),
+            );
+        }
+        let unit_direction = self.direction.normalized();
+        let y = scale_value_to_range(-1.0, 1.0, 0.0, 1.0, unit_direction.1);
+        ((1.0 - y) * sky_color_0) + (y * sky_color_1)
     }
 }
 
@@ -24,7 +64,12 @@ fn test_point_at_t() {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Hit {
     NoHit,
-    Hit { t: f64, point: Vec3, normal: Vec3 },
+    Hit {
+        t: f64,
+        point: Vec3,
+        normal: Vec3,
+        material: StandardMaterial,
+    },
 }
 
 pub trait Hitable {
@@ -34,6 +79,7 @@ pub trait Hitable {
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
+    pub material: StandardMaterial,
 }
 
 impl Hitable for Sphere {
@@ -63,6 +109,7 @@ impl Hitable for Sphere {
                     t: hit_t,
                     point: hit_point,
                     normal: (hit_point - self.center) / self.radius,
+                    material: self.material,
                 }
             }
         }
@@ -83,4 +130,92 @@ impl Hitable for Vec<Box<dyn Hitable>> {
         }
         nearest_hit
     }
+}
+
+trait Material {
+    fn scatter(
+        &self,
+        incoming_ray_direction: Vec3,
+        surface_point: Vec3,
+        surface_normal: Vec3,
+    ) -> Ray;
+    fn attenuate(&self, incoming_ray_color: Vec3) -> Vec3;
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StandardMaterial {
+    pub reflection: f64,
+    pub color: Vec3,
+}
+
+impl Material for StandardMaterial {
+    fn scatter(
+        &self,
+        incoming_ray_direction: Vec3,
+        surface_point: Vec3,
+        surface_normal: Vec3,
+    ) -> Ray {
+        let reflected_ray_direction = incoming_ray_direction
+            - 2.0 * incoming_ray_direction.dot(surface_normal) * surface_normal;
+        let diffuse_scattered_ray_direction = random_point_in_unit_sphere();
+        let combined_direction = self.reflection * reflected_ray_direction
+            + (1.0 - self.reflection) * diffuse_scattered_ray_direction;
+        Ray {
+            origin: surface_point,
+            direction: combined_direction,
+        }
+    }
+
+    fn attenuate(&self, incoming_ray_color: Vec3) -> Vec3 {
+        self.color * incoming_ray_color
+    }
+}
+
+fn random_point_in_unit_sphere() -> Vec3 {
+    let mut random_source = random::default();
+    loop {
+        let p =
+            (2.0 * Vec3(
+                random_source.read(),
+                random_source.read(),
+                random_source.read(),
+            )) - Vec3(1.0, 1.0, 1.0);
+        if p.length() <= 1.0 {
+            return p;
+        }
+    }
+}
+
+fn scale_value_to_range(
+    range_in_min: f64,
+    range_in_max: f64,
+    range_out_min: f64,
+    range_out_max: f64,
+    in_value: f64,
+) -> f64 {
+    let range_in = range_in_max - range_in_min;
+    let range_out = range_out_max - range_out_min;
+    let scale = range_out / range_in;
+    let post_scale_shift = range_out_min - (range_in_min * scale);
+    (in_value * scale) + post_scale_shift
+}
+
+#[test]
+fn test_scale_value_to_range() {
+    assert_eq!(scale_value_to_range(-1.0, 1.0, 0.0, 1.0, -1.0), 0.0);
+    assert_eq!(scale_value_to_range(-1.0, 1.0, 0.0, 1.0, 0.0), 0.5);
+    assert_eq!(scale_value_to_range(-1.0, 1.0, 0.0, 1.0, 1.0), 1.0);
+    assert_eq!(scale_value_to_range(-7.0, -6.0, 2.0, 4.0, -7.0), 2.0);
+    assert_eq!(scale_value_to_range(-7.0, -6.0, 2.0, 4.0, -6.5), 3.0);
+    assert_eq!(scale_value_to_range(-7.0, -6.0, 2.0, 4.0, -6.0), 4.0);
+}
+
+#[test]
+fn test_random_point_in_unit_sphere() {
+    let a = random_point_in_unit_sphere();
+    let b = random_point_in_unit_sphere();
+    let d0 = (a.0 - b.0).abs();
+    let d1 = (a.1 - b.1).abs();
+    let d2 = (a.2 - b.2).abs();
+    assert!(d0 > 0.001 || d1 > 0.001 || d2 > 0.001);
 }
