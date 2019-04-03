@@ -188,6 +188,10 @@ fn test_math() {
     c /= 2.0;
     assert_eq!(a, c);
     let mut d = a.clone();
+    d += b;
+    assert_eq!(a + b, d);
+    d -= b;
+    assert_eq!(a, d);
     d *= b;
     assert_eq!(a * 2.0, d);
     d /= b;
