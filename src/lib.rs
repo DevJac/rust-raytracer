@@ -5,6 +5,7 @@ pub mod vec3;
 use crate::image::Image;
 use crate::ray::Ray;
 use crate::vec3::Vec3;
+use std::time::{Duration, SystemTime};
 use random::Source as _;
 
 pub const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
@@ -29,8 +30,14 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
     let mut random_source = random::default();
     let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
+    let mut last_print = SystemTime::now();
     for y in (0..(n_rows_y as i32)).rev() {
-        eprintln!("{}", y);
+        let now = SystemTime::now();
+        let ds = now.duration_since(last_print);
+        if ds.is_err() || ds.unwrap() > Duration::from_secs(30) {
+            eprintln!("Rendering: {} rows remaining", y);
+            last_print = now;
+        }
         for x in 0..(n_columns_x as i32) {
             let mut average_color = Vec3(0.0, 0.0, 0.0);
             for aa_ray_i in 1..=aa_rays {
