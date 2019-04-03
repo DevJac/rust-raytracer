@@ -160,7 +160,7 @@ impl Material for StandardMaterial {
     ) -> Ray {
         let reflected_ray_direction = incoming_ray_direction
             - 2.0 * incoming_ray_direction.dot(surface_normal) * surface_normal;
-        let diffuse_scattered_ray_direction = random_point_in_unit_sphere();
+        let diffuse_scattered_ray_direction = random_point_in_unit_sphere() + surface_normal;
         let combined_direction = self.reflection * reflected_ray_direction
             + (1.0 - self.reflection) * diffuse_scattered_ray_direction;
         Ray {
