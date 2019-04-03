@@ -44,7 +44,7 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
                 let v = ((y as f64) + random_source.read::<f64>() - 0.5) / (n_rows_y - 1.0);
                 let u = ((x as f64) + random_source.read::<f64>() - 0.5) / (n_columns_x - 1.0);
                 let ray = Ray {
-                    origin: ORIGIN,
+                    origin: camera.origin,
                     direction: camera.lower_left_corner
                         + (u * camera.horizontal)
                         + (v * camera.vertical),
