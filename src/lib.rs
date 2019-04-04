@@ -1,9 +1,9 @@
 mod image;
-mod ray;
+pub mod ray;
 pub mod vec3;
 
 use crate::image::Image;
-use crate::ray::Ray;
+use crate::ray::{Hitable, Ray};
 use crate::vec3::Vec3;
 use random::Source as _;
 use std::time::{Duration, SystemTime};
@@ -41,7 +41,12 @@ impl Camera {
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss
 )]
-pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image {
+pub fn gen_image(
+    world: &[Box<dyn Hitable>],
+    camera: Camera,
+    horizontal_pixels: f64,
+    aa_rays: i32,
+) -> Image {
     let n_columns_x: f64 = horizontal_pixels.round();
     let n_rows_y: f64 = (horizontal_pixels / camera.aspec_ratio).round();
     let mut random_source = random::default();
@@ -69,7 +74,7 @@ pub fn gen_image(camera: Camera, horizontal_pixels: f64, aa_rays: i32) -> Image 
                         + (u * 2.0 * camera.horizontal())
                         + (v * 2.0 * camera.vertical()),
                 };
-                let aa_ray_color = ray.color();
+                let aa_ray_color = ray.color(world);
                 average_color += (aa_ray_color - average_color) / (aa_ray_i as f64);
             }
             pixel_colors.push(gamma_correct(average_color) * max_channel_value);
@@ -87,8 +92,49 @@ fn gamma_correct(c: Vec3) -> Vec3 {
     Vec3(c.0.sqrt(), c.1.sqrt(), c.2.sqrt())
 }
 
+#[cfg(test)]
+use crate::ray::{Sphere, StandardMaterial};
+
 #[test]
 fn test_gen_image() {
+    let world: Vec<Box<dyn Hitable>> = vec![
+        Box::new(Sphere {
+            center: Vec3(0.0, 0.0, -1.0),
+            radius: 0.5,
+            material: StandardMaterial {
+                reflection: 0.98,
+                color: Vec3(1.0, 0.2, 0.2),
+                albedo: 0.6,
+            },
+        }),
+        Box::new(Sphere {
+            center: Vec3(0.0, -1000.5, -1.0),
+            radius: 1000.0,
+            material: StandardMaterial {
+                reflection: 0.0,
+                color: Vec3(0.3, 0.6, 0.0),
+                albedo: 0.4,
+            },
+        }),
+        Box::new(Sphere {
+            center: Vec3(0.9, -0.3, -0.9),
+            radius: 0.2,
+            material: StandardMaterial {
+                reflection: 0.0,
+                color: Vec3(0.2, 0.2, 1.0),
+                albedo: 0.6,
+            },
+        }),
+        Box::new(Sphere {
+            center: Vec3(-1.0, -0.1, -0.9),
+            radius: 0.4,
+            material: StandardMaterial {
+                reflection: 1.0,
+                color: Vec3(1.0, 1.0, 0.6),
+                albedo: 0.8,
+            },
+        }),
+    ];
     let c = Camera {
         up: UP,
         look_from: ORIGIN,
@@ -96,7 +142,7 @@ fn test_gen_image() {
         aspec_ratio: 2.0,
         vertical_fov: 45.0,
     };
-    let image = gen_image(c, 10.0, 8);
+    let image = gen_image(&world, c, 10.0, 8);
     assert_eq!(image.columns, 10);
     assert_eq!(image.rows, 5);
     assert_eq!(image.pixel_colors.len(), 50);

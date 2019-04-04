@@ -12,45 +12,7 @@ impl Ray {
         self.origin + (self.direction * t)
     }
 
-    pub fn color(&self) -> Vec3 {
-        let objects: Vec<Box<dyn Hitable>> = vec![
-            Box::new(Sphere {
-                center: Vec3(0.0, 0.0, -1.0),
-                radius: 0.5,
-                material: StandardMaterial {
-                    reflection: 0.98,
-                    color: Vec3(1.0, 0.2, 0.2),
-                    albedo: 0.6,
-                },
-            }),
-            Box::new(Sphere {
-                center: Vec3(0.0, -1000.5, -1.0),
-                radius: 1000.0,
-                material: StandardMaterial {
-                    reflection: 0.0,
-                    color: Vec3(0.3, 0.6, 0.0),
-                    albedo: 0.4,
-                },
-            }),
-            Box::new(Sphere {
-                center: Vec3(0.9, -0.3, -0.9),
-                radius: 0.2,
-                material: StandardMaterial {
-                    reflection: 0.0,
-                    color: Vec3(0.2, 0.2, 1.0),
-                    albedo: 0.6,
-                },
-            }),
-            Box::new(Sphere {
-                center: Vec3(-1.0, -0.1, -0.9),
-                radius: 0.4,
-                material: StandardMaterial {
-                    reflection: 1.0,
-                    color: Vec3(1.0, 1.0, 0.6),
-                    albedo: 0.8,
-                },
-            }),
-        ];
+    pub fn color(&self, world: &[Box<dyn Hitable>]) -> Vec3 {
         let sky_color_0 = Vec3(1.0, 1.0, 1.0);
         let sky_color_1 = Vec3(0.5, 0.7, 1.0);
         if let Hit::Hit {
@@ -58,12 +20,12 @@ impl Ray {
             normal: hit_normal,
             material: hit_material,
             ..
-        } = objects.hit(*self)
+        } = world.hit(*self)
         {
             return hit_material.attenuate(
                 hit_material
                     .scatter(self.direction, hit_point, hit_normal)
-                    .color(),
+                    .color(world),
             );
         }
         let unit_direction = self.direction.normalized();
@@ -136,10 +98,10 @@ impl Hitable for Sphere {
     }
 }
 
-impl Hitable for Vec<Box<dyn Hitable>> {
+impl Hitable for &[Box<dyn Hitable>] {
     fn hit(&self, r: Ray) -> Hit {
         let mut nearest_hit = Hit::NoHit;
-        for hitable in self {
+        for hitable in *self {
             let hitable = hitable.as_ref();
             let hit = hitable.hit(r);
             match (nearest_hit, hit) {
