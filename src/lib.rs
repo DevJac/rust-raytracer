@@ -53,6 +53,7 @@ pub fn gen_image(
     let n_rows_y: f64 = (horizontal_pixels / camera.aspec_ratio).round();
     let max_channel_value: f64 = 255.0;
     let last_print = Arc::new(Mutex::new(SystemTime::now()));
+    let rows_completed = Arc::new(Mutex::new(0));
     let pixel_colors: Vec<Vec3> = (0..(n_rows_y as i32))
         .into_par_iter()
         .rev()
@@ -65,7 +66,7 @@ pub fn gen_image(
                 if ds.is_err() || ds.unwrap() > Duration::from_secs(30) {
                     eprintln!(
                         "Rendering: {:.0}% complete",
-                        (n_rows_y - (y as f64)) / n_rows_y * 100.0,
+                        (*rows_completed.lock().unwrap() as f64) / n_rows_y * 100.0,
                     );
                     *guarded_last_print = now;
                 }
@@ -86,6 +87,7 @@ pub fn gen_image(
                 }
                 row_colors.push(gamma_correct(average_color) * max_channel_value);
             }
+            *rows_completed.lock().unwrap() += 1;
             row_colors
         })
         .collect();
