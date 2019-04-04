@@ -50,7 +50,7 @@ fn bench_gen_image(criterion: &mut Criterion) {
         vertical_fov: 15.0,
     };
     criterion.bench_function("gen_image", move |b: &mut Bencher| {
-        b.iter(|| gen_image(&world, c, 100.0, 5))
+        b.iter(|| gen_image(&world, c, 150.0, 15))
     });
 }
 

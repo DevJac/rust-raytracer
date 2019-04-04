@@ -5,7 +5,9 @@ pub mod vec3;
 use crate::image::Image;
 use crate::ray::{Hitable, Ray};
 use crate::vec3::Vec3;
-use random::Source as _;
+use rand::prelude::*;
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
 pub const ORIGIN: Vec3 = Vec3(0.0, 0.0, 0.0);
@@ -49,37 +51,45 @@ pub fn gen_image(
 ) -> Image {
     let n_columns_x: f64 = horizontal_pixels.round();
     let n_rows_y: f64 = (horizontal_pixels / camera.aspec_ratio).round();
-    let mut random_source = random::default();
-    let mut pixel_colors: Vec<Vec3> = Vec::with_capacity((n_columns_x * n_rows_y) as usize);
     let max_channel_value: f64 = 255.0;
-    let mut last_print = SystemTime::now();
-    for y in (0..(n_rows_y as i32)).rev() {
-        let now = SystemTime::now();
-        let ds = now.duration_since(last_print);
-        if ds.is_err() || ds.unwrap() > Duration::from_secs(30) {
-            eprintln!(
-                "Rendering: {:.0}% complete",
-                (n_rows_y - (y as f64)) / n_rows_y * 100.0,
-            );
-            last_print = now;
-        }
-        for x in 0..(n_columns_x as i32) {
-            let mut average_color = Vec3(0.0, 0.0, 0.0);
-            for aa_ray_i in 1..=aa_rays {
-                let v = ((y as f64) + random_source.read::<f64>() - 0.5) / (n_rows_y - 1.0);
-                let u = ((x as f64) + random_source.read::<f64>() - 0.5) / (n_columns_x - 1.0);
-                let ray = Ray {
-                    origin: camera.look_from,
-                    direction: camera.lower_left_corner()
-                        + (u * 2.0 * camera.horizontal())
-                        + (v * 2.0 * camera.vertical()),
-                };
-                let aa_ray_color = ray.color(world);
-                average_color += (aa_ray_color - average_color) / (aa_ray_i as f64);
+    let last_print = Arc::new(Mutex::new(SystemTime::now()));
+    let pixel_colors: Vec<Vec3> = (0..(n_rows_y as i32))
+        .rev()
+        .collect::<Vec<i32>>()
+        .par_iter()
+        .flat_map(|y| {
+            let mut rng = rand::thread_rng();
+            let mut row_colors: Vec<Vec3> = Vec::with_capacity(n_columns_x as usize);
+            let now = SystemTime::now();
+            if let Ok(mut guarded_last_print) = last_print.try_lock() {
+                let ds = now.duration_since(*guarded_last_print);
+                if ds.is_err() || ds.unwrap() > Duration::from_secs(30) {
+                    eprintln!(
+                        "Rendering: {:.0}% complete",
+                        (n_rows_y - (*y as f64)) / n_rows_y * 100.0,
+                    );
+                    *guarded_last_print = now;
+                }
             }
-            pixel_colors.push(gamma_correct(average_color) * max_channel_value);
-        }
-    }
+            for x in 0..(n_columns_x as i32) {
+                let mut average_color = Vec3(0.0, 0.0, 0.0);
+                for aa_ray_i in 1..=aa_rays {
+                    let v = ((*y as f64) + rng.gen::<f64>() - 0.5) / (n_rows_y - 1.0);
+                    let u = ((x as f64) + rng.gen::<f64>() - 0.5) / (n_columns_x - 1.0);
+                    let ray = Ray {
+                        origin: camera.look_from,
+                        direction: camera.lower_left_corner()
+                            + (u * 2.0 * camera.horizontal())
+                            + (v * 2.0 * camera.vertical()),
+                    };
+                    let aa_ray_color = ray.color(world);
+                    average_color += (aa_ray_color - average_color) / (aa_ray_i as f64);
+                }
+                row_colors.push(gamma_correct(average_color) * max_channel_value);
+            }
+            row_colors
+        })
+        .collect();
     Image {
         columns: n_columns_x as i32,
         rows: n_rows_y as i32,

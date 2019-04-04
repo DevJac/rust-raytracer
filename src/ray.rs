@@ -1,5 +1,5 @@
 use crate::vec3::Vec3;
-use random::Source as _;
+use rand::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Ray {
@@ -54,7 +54,7 @@ pub enum Hit {
     },
 }
 
-pub trait Hitable {
+pub trait Hitable: Sync {
     fn hit(&self, r: Ray) -> Hit;
 }
 
@@ -155,14 +155,9 @@ impl Material for StandardMaterial {
 }
 
 fn random_point_in_unit_sphere() -> Vec3 {
-    let mut random_source = random::default();
+    let mut rng = rand::thread_rng();
     loop {
-        let p =
-            (2.0 * Vec3(
-                random_source.read(),
-                random_source.read(),
-                random_source.read(),
-            )) - Vec3(1.0, 1.0, 1.0);
+        let p = (2.0 * Vec3(rng.gen(), rng.gen(), rng.gen())) - Vec3(1.0, 1.0, 1.0);
         if p.length() <= 1.0 {
             return p;
         }
