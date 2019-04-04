@@ -60,5 +60,5 @@ fn main() -> io::Result<()> {
         aspec_ratio: 2.0,
         vertical_fov: 15.0,
     };
-    gen_image(&world, c, 8000.0, 200).write_to(&mut stdout)
+    gen_image(&world, c, 2000.0, 1000).write_to(&mut stdout)
 }
