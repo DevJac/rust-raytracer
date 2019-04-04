@@ -54,9 +54,8 @@ pub fn gen_image(
     let max_channel_value: f64 = 255.0;
     let last_print = Arc::new(Mutex::new(SystemTime::now()));
     let pixel_colors: Vec<Vec3> = (0..(n_rows_y as i32))
+        .into_par_iter()
         .rev()
-        .collect::<Vec<i32>>()
-        .par_iter()
         .flat_map(|y| {
             let mut rng = rand::thread_rng();
             let mut row_colors: Vec<Vec3> = Vec::with_capacity(n_columns_x as usize);
@@ -66,7 +65,7 @@ pub fn gen_image(
                 if ds.is_err() || ds.unwrap() > Duration::from_secs(30) {
                     eprintln!(
                         "Rendering: {:.0}% complete",
-                        (n_rows_y - (*y as f64)) / n_rows_y * 100.0,
+                        (n_rows_y - (y as f64)) / n_rows_y * 100.0,
                     );
                     *guarded_last_print = now;
                 }
@@ -74,7 +73,7 @@ pub fn gen_image(
             for x in 0..(n_columns_x as i32) {
                 let mut average_color = Vec3(0.0, 0.0, 0.0);
                 for aa_ray_i in 1..=aa_rays {
-                    let v = ((*y as f64) + rng.gen::<f64>() - 0.5) / (n_rows_y - 1.0);
+                    let v = ((y as f64) + rng.gen::<f64>() - 0.5) / (n_rows_y - 1.0);
                     let u = ((x as f64) + rng.gen::<f64>() - 0.5) / (n_columns_x - 1.0);
                     let ray = Ray {
                         origin: camera.look_from,
