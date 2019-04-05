@@ -20,7 +20,7 @@ fn main() -> io::Result<()> {
             center: Vec3(0.0, 0.0, -1.0),
             radius: 0.5,
             material: StandardMaterial {
-                reflection: 0.98,
+                reflection: 0.80,
                 color: Vec3(1.0, 0.2, 0.2),
                 albedo: 0.6,
             },
@@ -48,8 +48,8 @@ fn main() -> io::Result<()> {
             radius: 0.4,
             material: StandardMaterial {
                 reflection: 1.0,
-                color: Vec3(1.0, 1.0, 0.6),
-                albedo: 0.8,
+                color: Vec3(1.0, 1.0, 0.5),
+                albedo: 0.7,
             },
         }),
     ];
